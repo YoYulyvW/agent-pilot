@@ -332,6 +332,12 @@ final class Store: ObservableObject {
         sortConversations()
         scheduleSave()
 
+        // 发送前确保连接：断了就重连再试
+        if !transport.isConnected {
+            applyTransport()
+            try? await Task.sleep(nanoseconds: 800_000_000)
+        }
+
         if transport.isConnected {
             var payload: [String: Any] = [
                 "v": 1,
@@ -344,8 +350,13 @@ final class Store: ObservableObject {
             if !attachments.isEmpty {
                 payload["attachments"] = attachments.map { $0.wireDict }
             }
-            return await transport.send(toDeviceId: convId, payload: payload)
+            let ok = await transport.send(toDeviceId: convId, payload: payload)
+            if !ok {
+                appendSystemMessage(convId, text: "⚠️ 消息发送失败：中继未响应")
+            }
+            return ok
         }
+        appendSystemMessage(convId, text: "⚠️ 消息未发出：中继未连接，请到「设置」检查地址")
         return false
     }
 
