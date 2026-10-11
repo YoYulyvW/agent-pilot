@@ -371,6 +371,17 @@ final class Store: ObservableObject {
         await MainActor.run { self.devices = list }
     }
 
+    /// 从设备列表主动发起与某个智能体的会话
+    func startConversation(deviceId: String, name: String) {
+        if conversations.firstIndex(where: { $0.id == deviceId }) == nil {
+            let c = Conversation(id: deviceId, title: name, agentName: name,
+                                 avatarEmoji: "🤖", isOnline: true)
+            conversations.insert(c, at: 0)
+            scheduleSave()
+        }
+        selectedConversationId = deviceId
+    }
+
     // MARK: - 会话交互
 
     func markRead(_ convId: String) {

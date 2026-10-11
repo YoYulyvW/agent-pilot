@@ -50,17 +50,22 @@ class RelayClient:
 
     # ---------- 配置持久化 ----------
     def _load_device_id(self):
+        """按智能体名称分配独立 deviceId，保证不同智能体在手机端是不同会话。"""
+        data = {}
         try:
             with open(self.config_path, encoding="utf-8") as f:
                 data = json.load(f)
-            if data.get("deviceId"):
-                return data["deviceId"]
         except (OSError, ValueError):
-            pass
+            data = {}
+        devices = data.get("devices", {}) if isinstance(data, dict) else {}
+        key = self.device_name or "default"
+        if isinstance(devices, dict) and devices.get(key):
+            return devices[key]
         did = "agent-" + uuid.uuid4().hex[:16]
+        devices[key] = did
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
-                json.dump({"deviceId": did}, f)
+                json.dump({"devices": devices}, f, ensure_ascii=False, indent=2)
         except OSError:
             pass
         return did

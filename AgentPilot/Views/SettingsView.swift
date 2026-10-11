@@ -47,22 +47,37 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity)
             }
 
-            Section("在线智能体") {
+            Section {
                 if store.devices.isEmpty {
-                    Text("暂未发现其它设备").font(.subheadline).foregroundStyle(Palette.textSecondary)
+                    Text("暂未发现在线智能体")
+                        .font(.subheadline).foregroundStyle(Palette.textSecondary)
                 } else {
                     ForEach(store.devices) { d in
                         HStack {
                             Text(d.deviceName)
+                                .foregroundStyle(Palette.textPrimary)
                             Spacer()
-                            Text(d.platform).font(.caption).foregroundStyle(Palette.textSecondary)
-                            Circle().fill(d.online ? Palette.success : Palette.textTertiary).frame(width: 8, height: 8)
+                            if d.platform == "agent" {
+                                Button("对话") {
+                                    store.startConversation(deviceId: d.deviceId, name: d.deviceName)
+                                }
+                                .buttonStyle(.borderless)
+                                .foregroundStyle(Palette.accent)
+                            } else {
+                                Text(d.platform).font(.caption).foregroundStyle(Palette.textSecondary)
+                            }
+                            Circle().fill(d.online ? Palette.success : Palette.textTertiary)
+                                .frame(width: 8, height: 8)
                         }
                     }
                 }
                 Button("刷新设备列表") {
                     Task { await store.refreshDevices() }
                 }
+            } header: {
+                Text("在线智能体")
+            } footer: {
+                Text("Codex / Cuckoo 等智能体用 agent-relay 接入中继后会出现在这里，点「对话」发起会话。")
             }
 
             Section {
