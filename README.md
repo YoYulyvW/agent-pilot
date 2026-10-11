@@ -48,6 +48,29 @@
 - **图片发送**：App 自动压缩（最长边 ≤ 1600、渐进降质量）到内联上限以内。
 - 手机回复同样以 `type: "agent"` 发回智能体的 deviceId。
 
+## 对接智能体（WorkBuddy / Codex / Claude Code / Cursor）
+
+见 [`agent-relay/`](agent-relay/)——零依赖 Python SDK（CLI + 可选 MCP server）。智能体注册为中继上的 `platform:agent` 设备，即可收发消息、推任务、发文件。
+
+```bash
+# 列设备 / 发消息 / 工具进度 / 任务状态 / 等回复
+python -m agent_relay --relay http://127.0.0.1:8860 --name WorkBuddy devices
+python -m agent_relay --relay http://127.0.0.1:8860 --name Codex tool m1 xcodebuild running "构建中…"
+python -m agent_relay --relay http://127.0.0.1:8860 --name Codex tool m1 xcodebuild done "构建完成"
+```
+
+### Edit 消息（工具进度不刷屏）
+
+同一条工具调用**复用同一个 `messageId`**，App 端检测到相同 id 就**原地更新**原消息（running 转圈 → done ✓ / failed ✗），而不是新发一条。`kind: "tool"` + `toolName` + `toolState` 字段：
+
+```jsonc
+{ "type": "agent", "payload": {
+    "v": 1, "kind": "tool",
+    "messageId": "m1", "toolName": "read_file", "toolState": "done", "text": "已读取（120 行）",
+    "agentId": "agent-xxx", "agentName": "Codex", "ts": 1728600000
+}}
+```
+
 ## 构建（GitHub Actions · 单公开库）
 
 1. 推送到 GitHub 公开仓库（见 `tools/push.py`）

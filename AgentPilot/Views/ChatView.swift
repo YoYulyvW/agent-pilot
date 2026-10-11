@@ -30,11 +30,14 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(msgs) { m in
-                            MessageBubble(message: m).id(m.id)
+                            MessageBubble(message: m)
+                                .id(m.id)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
+                    .animation(.easeOut(duration: 0.18), value: msgs.count)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onChange(of: msgs.count) { _ in

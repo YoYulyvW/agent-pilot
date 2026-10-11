@@ -110,6 +110,9 @@ final class Store: ObservableObject {
         let agentId = (p["agentId"] as? String) ?? env.from
         let agentName = (p["agentName"] as? String) ?? env.fromName
         let ts = (p["ts"] as? Double).map { Date(timeIntervalSince1970: $0) } ?? env.receivedAt
+        let bizId = (p["messageId"] as? String) ?? (p["bizId"] as? String)
+        let toolName = p["toolName"] as? String
+        let toolState = p["toolState"] as? String
 
         // 解码附件
         var attachments: [Attachment] = []
@@ -118,6 +121,28 @@ final class Store: ObservableObject {
         }
         if kind == .text && !attachments.isEmpty && text.isEmpty {
             kind = .attachment
+        }
+
+        // edit 逻辑：相同 bizId 原地更新原消息（工具进度等，不刷屏）
+        if let bizId, !bizId.isEmpty,
+           let idx = messages[agentId]?.firstIndex(where: { $0.bizId == bizId }) {
+            var arr = messages[agentId] ?? []
+            arr[idx].kind = kind
+            if !text.isEmpty { arr[idx].text = text }
+            arr[idx].toolName = toolName ?? arr[idx].toolName
+            arr[idx].toolState = toolState ?? arr[idx].toolState
+            if !attachments.isEmpty { arr[idx].attachments = attachments }
+            arr[idx].timestamp = ts
+            messages[agentId] = arr
+
+            let updated = arr[idx]
+            if let cidx = conversations.firstIndex(where: { $0.id == agentId }) {
+                conversations[cidx].lastMessage = Self.previewText(for: updated)
+                conversations[cidx].updatedAt = ts
+            }
+            transport.acknowledge(messageIds: [env.messageId])
+            scheduleSave()
+            return
         }
 
         let msg = AgentMessage(
@@ -129,6 +154,9 @@ final class Store: ObservableObject {
             senderName: agentName,
             timestamp: ts,
             attachments: attachments,
+            bizId: bizId,
+            toolName: toolName,
+            toolState: toolState,
             taskId: p["taskId"] as? String,
             taskStatus: p["taskStatus"] as? String,
             progress: p["progress"] as? Double
@@ -155,6 +183,16 @@ final class Store: ObservableObject {
     }
 
     static func previewText(for m: AgentMessage) -> String {
+        if m.kind == .tool {
+            let name = m.toolName ?? "工具"
+            let mark: String
+            switch m.toolState {
+            case "done": mark = "✅"
+            case "failed": mark = "❌"
+            default: mark = "🔧"
+            }
+            return "\(mark) \(name)"
+        }
         if !m.text.isEmpty { return m.text }
         if !m.attachments.isEmpty {
             let hasImage = m.attachments.contains { $0.kind == .image }

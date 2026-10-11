@@ -169,6 +169,18 @@ struct MessageBubble: View {
 
     var isIncoming: Bool { message.direction == .incoming }
 
+    private var bubbleShape: UnevenRoundedRectangle {
+        if isIncoming {
+            return UnevenRoundedRectangle(
+                topLeadingRadius: 5, bottomLeadingRadius: 18,
+                bottomTrailingRadius: 18, topTrailingRadius: 18, style: .continuous)
+        } else {
+            return UnevenRoundedRectangle(
+                topLeadingRadius: 18, bottomLeadingRadius: 18,
+                bottomTrailingRadius: 18, topTrailingRadius: 5, style: .continuous)
+        }
+    }
+
     var body: some View {
         HStack {
             if isIncoming { Spacer(minLength: 48) }
@@ -176,6 +188,8 @@ struct MessageBubble: View {
                 switch message.kind {
                 case .task:
                     InlineTaskCard(message: message)
+                case .tool:
+                    ToolCard(message: message)
                 default:
                     if !message.text.isEmpty {
                         Text(message.text)
@@ -183,7 +197,7 @@ struct MessageBubble: View {
                             .padding(.horizontal, 14).padding(.vertical, 10)
                             .foregroundStyle(isIncoming ? Color.primary : Color.white)
                             .background(isIncoming ? Color(.secondarySystemBackground) : Palette.accent)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .clipShape(bubbleShape)
                     }
                 }
 
@@ -202,6 +216,70 @@ struct MessageBubble: View {
         }
     }
 }
+
+// MARK: - 工具调用卡片（edit 消息：running → done/failed）
+
+struct ToolCard: View {
+    let message: AgentMessage
+
+    private var state: String { message.toolState ?? "running" }
+    private var toolName: String { message.toolName ?? "工具" }
+
+    private var tint: Color {
+        switch state {
+        case "done": return .green
+        case "failed": return .red
+        default: return Palette.accent
+        }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch state {
+        case "done":
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.system(size: 18))
+        case "failed":
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(.red)
+                .font(.system(size: 18))
+        default:
+            ProgressView()
+                .controlSize(.small)
+                .tint(Palette.accent)
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            icon
+            VStack(alignment: .leading, spacing: 3) {
+                Text(toolName)
+                    .font(.subheadline.weight(.semibold))
+                    .monospaced()
+                    .foregroundStyle(tint)
+                if !message.text.isEmpty {
+                    Text(message.text)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: 320, alignment: .leading)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(tint.opacity(0.35), lineWidth: 1)
+        )
+        .animation(.easeInOut(duration: 0.2), value: state)
+    }
+}
+
 
 // MARK: - 附件网格
 

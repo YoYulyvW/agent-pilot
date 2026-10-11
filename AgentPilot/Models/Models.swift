@@ -76,6 +76,7 @@ enum MessageDirection: String, Codable {
 enum MessageKind: String, Codable {
     case text        // 普通文本
     case attachment  // 图片/文件
+    case tool        // 工具调用进度（running/done/failed）
     case task        // 单条任务状态更新
     case taskList    // 任务清单同步
     case status      // 系统/连接状态
@@ -91,6 +92,11 @@ struct AgentMessage: Identifiable, Codable, Equatable {
     var senderName: String
     var timestamp: Date
     var attachments: [Attachment]
+    // 业务 id（agent 侧生成的稳定 id）：相同 bizId = 更新（edit）原消息
+    var bizId: String?
+    // 工具调用（kind == .tool 时使用）
+    var toolName: String?
+    var toolState: String?   // running / done / failed
     // 任务相关（kind == .task 时使用）
     var taskId: String?
     var taskStatus: String?
@@ -104,6 +110,9 @@ struct AgentMessage: Identifiable, Codable, Equatable {
          senderName: String = "",
          timestamp: Date = Date(),
          attachments: [Attachment] = [],
+         bizId: String? = nil,
+         toolName: String? = nil,
+         toolState: String? = nil,
          taskId: String? = nil,
          taskStatus: String? = nil,
          progress: Double? = nil) {
@@ -115,15 +124,18 @@ struct AgentMessage: Identifiable, Codable, Equatable {
         self.senderName = senderName
         self.timestamp = timestamp
         self.attachments = attachments
+        self.bizId = bizId
+        self.toolName = toolName
+        self.toolState = toolState
         self.taskId = taskId
         self.taskStatus = taskStatus
         self.progress = progress
     }
 
-    // 兼容旧存档：attachments 缺失时回退为空
+    // 兼容旧存档：新增字段缺失时回退默认
     enum CodingKeys: String, CodingKey {
         case id, conversationId, direction, kind, text, senderName, timestamp
-        case attachments, taskId, taskStatus, progress
+        case attachments, bizId, toolName, toolState, taskId, taskStatus, progress
     }
 
     init(from decoder: Decoder) throws {
@@ -136,6 +148,9 @@ struct AgentMessage: Identifiable, Codable, Equatable {
         senderName = try c.decodeIfPresent(String.self, forKey: .senderName) ?? ""
         timestamp = try c.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
         attachments = try c.decodeIfPresent([Attachment].self, forKey: .attachments) ?? []
+        bizId = try c.decodeIfPresent(String.self, forKey: .bizId)
+        toolName = try c.decodeIfPresent(String.self, forKey: .toolName)
+        toolState = try c.decodeIfPresent(String.self, forKey: .toolState)
         taskId = try c.decodeIfPresent(String.self, forKey: .taskId)
         taskStatus = try c.decodeIfPresent(String.self, forKey: .taskStatus)
         progress = try c.decodeIfPresent(Double.self, forKey: .progress)
