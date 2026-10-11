@@ -133,7 +133,7 @@ final class RelayTransport: ObservableObject {
         }
     }
 
-    @MainActor private func setState(_ s: State, _ err: String?) {
+    @MainActor private func setState(_ s: State, _ err: String? = nil) {
         state = s
         if err != nil { lastError = err }
         else if s == .connected { lastError = nil }

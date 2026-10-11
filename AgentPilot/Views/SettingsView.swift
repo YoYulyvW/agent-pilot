@@ -21,7 +21,7 @@ struct SettingsView: View {
                 Text("连接到你自建的中继服务（relay_server.py，默认端口 8860）。未填写时展示演示数据。")
             }
 
-            Section("中继服务") {
+            Section {
                 TextField("https://relay.example.com", text: $relayURL)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
@@ -34,6 +34,8 @@ struct SettingsView: View {
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+            } header: {
+                Text("中继服务")
             } footer: {
                 Text("超过 150 KB 的文件需配置文件服务器才能发送；未配置则小文件内联走中继。")
             }

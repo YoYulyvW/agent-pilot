@@ -236,4 +236,5 @@ struct AgentDevice: Identifiable, Codable {
     var deviceName: String
     var platform: String
     var online: Bool
+    var id: String { deviceId }
 }
