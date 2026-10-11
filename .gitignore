@@ -1,0 +1,40 @@
+# === 构建产物 ===
+build/
+DerivedData/
+*.ipa
+*.zip
+
+# === 签名与密钥（绝不提交）===
+.signing/
+*/.signing/
+*.p12
+*.mobileprovision
+secrets.txt
+secrets.json
+*.jks
+
+# === Xcode ===
+*.xcodeproj/
+*.xcworkspace/
+*.xcuserstate
+xcuserdata/
+
+# === 系统 / 编辑器 ===
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.iml
+
+# === Python ===
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# === 临时 ===
+*.bak
+*.tmp
+*.log

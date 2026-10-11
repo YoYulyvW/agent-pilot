@@ -1,0 +1,460 @@
+import SwiftUI
+import QuickLook
+import Photos
+
+// MARK: - 主题色
+
+enum Palette {
+    static let accent = Color(red: 0.35, green: 0.55, blue: 1.0)      // 蓝
+    static let accentDark = Color(red: 0.22, green: 0.38, blue: 0.85)
+}
+
+// MARK: - 空状态（iOS 16.4 无 ContentUnavailableView）
+
+struct EmptyStateView: View {
+    let title: String
+    let systemImage: String
+    var message: String? = nil
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 40))
+                .foregroundStyle(.tertiary)
+            Text(title).font(.headline).foregroundStyle(.secondary)
+            if let message {
+                Text(message).font(.subheadline).foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
+}
+
+// MARK: - 附件保存
+
+enum AttachmentSaver {
+    static func saveImage(_ img: UIImage) {
+        PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAsset(from: img)
+        }
+    }
+
+    /// 把附件写入临时文件，返回 URL（供预览/分享）
+    static func tempURL(for att: Attachment) -> URL? {
+        if let d = att.data {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString + "-" + att.name)
+            do { try d.write(to: url); return url } catch { return nil }
+        }
+        return att.url.flatMap(URL.init)
+    }
+}
+
+// MARK: - QuickLook 预览
+
+struct QuickLookPreview: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let c = QLPreviewController()
+        c.dataSource = context.coordinator
+        return c
+    }
+
+    func updateUIViewController(_ vc: QLPreviewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(url: url) }
+
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        let url: URL
+        init(url: URL) { self.url = url }
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as NSURL
+        }
+    }
+}
+
+// MARK: - 连接状态徽标
+
+struct ConnectionBadge: View {
+    let state: RelayTransport.State
+
+    var color: Color {
+        switch state {
+        case .connected: return .green
+        case .connecting: return .orange
+        case .error: return .red
+        case .idle: return .gray
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(state.display).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - 头像
+
+struct AvatarView: View {
+    let emoji: String
+    let online: Bool
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Text(emoji)
+                .font(.system(size: 20))
+                .frame(width: 42, height: 42)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(Circle())
+            Circle()
+                .fill(online ? Color.green : Color.gray)
+                .frame(width: 11, height: 11)
+                .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
+        }
+    }
+}
+
+// MARK: - 状态标签
+
+struct StatusPill: View {
+    let status: TaskStatus
+
+    var color: Color {
+        switch status {
+        case .pending: return .gray
+        case .running: return .blue
+        case .blocked: return .orange
+        case .done: return .green
+        case .failed: return .red
+        }
+    }
+
+    var body: some View {
+        Text(status.display)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .foregroundStyle(color)
+            .background(color.opacity(0.14))
+            .clipShape(Capsule())
+    }
+}
+
+// MARK: - 进度条
+
+struct ProgressBar: View {
+    let progress: Double
+    var color: Color = Palette.accent
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color(.systemGray5))
+                Capsule().fill(color).frame(width: geo.size.width * progress)
+            }
+        }
+        .frame(height: 5)
+    }
+}
+
+// MARK: - 消息气泡
+
+struct MessageBubble: View {
+    let message: AgentMessage
+
+    var isIncoming: Bool { message.direction == .incoming }
+
+    var body: some View {
+        HStack {
+            if isIncoming { Spacer(minLength: 48) }
+            VStack(alignment: isIncoming ? .leading : .trailing, spacing: 6) {
+                switch message.kind {
+                case .task:
+                    InlineTaskCard(message: message)
+                default:
+                    if !message.text.isEmpty {
+                        Text(message.text)
+                            .font(.body)
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                            .foregroundStyle(isIncoming ? Color.primary : Color.white)
+                            .background(isIncoming ? Color(.secondarySystemBackground) : Palette.accent)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                }
+
+                if !message.attachments.isEmpty {
+                    AttachmentGridView(attachments: message.attachments)
+                }
+
+                HStack(spacing: 6) {
+                    if !message.senderName.isEmpty {
+                        Text(message.senderName).font(.caption2).foregroundStyle(.secondary)
+                    }
+                    Text(message.timestamp, style: .time).font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
+            if !isIncoming { Spacer(minLength: 48) }
+        }
+    }
+}
+
+// MARK: - 附件网格
+
+struct AttachmentGridView: View {
+    let attachments: [Attachment]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(attachments) { att in
+                if att.kind == .image {
+                    ImageAttachmentCell(attachment: att)
+                } else {
+                    FileAttachmentCell(attachment: att)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 图片附件
+
+struct ImageAttachmentCell: View {
+    let attachment: Attachment
+    @State private var showFull = false
+
+    var body: some View {
+        thumbnail
+            .frame(maxWidth: 240, maxHeight: 320)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .onTapGesture { showFull = true }
+            .contextMenu {
+                if let img = image {
+                    Button {
+                        AttachmentSaver.saveImage(img)
+                    } label: {
+                        Label("保存到相册", systemImage: "square.and.arrow.down")
+                    }
+                }
+                if let u = AttachmentSaver.tempURL(for: attachment) {
+                    ShareLink(item: u) {
+                        Label("分享", systemImage: "square.and.arrow.up")
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showFull) {
+                FullImagePreview(attachment: attachment)
+            }
+    }
+
+    private var image: UIImage? {
+        attachment.data.flatMap(UIImage.init(data:))
+    }
+
+    @ViewBuilder
+    private var thumbnail: some View {
+        if let img = image {
+            Image(uiImage: img).resizable().scaledToFit()
+        } else if let urlStr = attachment.url, let u = URL(string: urlStr) {
+            AsyncImage(url: u) { phase in
+                switch phase {
+                case .success(let img):
+                    img.resizable().scaledToFit()
+                case .failure:
+                    placeholder("图片加载失败")
+                case .empty:
+                    ZStack { Color(.secondarySystemBackground); ProgressView() }
+                @unknown default:
+                    EmptyView()
+                }
+            }
+        } else {
+            placeholder("无数据")
+        }
+    }
+
+    private func placeholder(_ s: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground))
+            Text(s).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(width: 200, height: 120)
+    }
+}
+
+/// 全屏图片预览
+struct FullImagePreview: View {
+    let attachment: Attachment
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+            content
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Button { dismiss() } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let img = attachment.data.flatMap(UIImage.init(data:)) {
+            Image(uiImage: img).resizable()
+        } else if let urlStr = attachment.url, let u = URL(string: urlStr) {
+            AsyncImage(url: u) { phase in
+                if case .success(let img) = phase { img.resizable() }
+            }
+        }
+    }
+}
+
+// MARK: - 文件附件
+
+struct FileAttachmentCell: View {
+    let attachment: Attachment
+    @State private var previewURL: URL?
+    @State private var showingPreview = false
+
+    private var icon: String {
+        switch (attachment.name as NSString).pathExtension.lowercased() {
+        case "pdf": return "doc.richtext"
+        case "zip": return "doc.zipper"
+        case "txt", "md": return "doc.plaintext"
+        case "mp4", "mov": return "play.rectangle"
+        case "mp3": return "music.note"
+        default: return "doc"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(Palette.accent)
+                .frame(width: 36, height: 36)
+                .background(Palette.accent.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(attachment.name)
+                    .font(.subheadline.weight(.medium)).lineLimit(1)
+                Text(AttachmentHelper.readableSize(attachment.sizeBytes))
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Image(systemName: "eye").foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .frame(maxWidth: 260)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onTapGesture { open() }
+        .contextMenu {
+            if let u = AttachmentSaver.tempURL(for: attachment) {
+                ShareLink(item: u) {
+                    Label("分享", systemImage: "square.and.arrow.up")
+                }
+            }
+        }
+        .sheet(isPresented: $showingPreview) {
+            if let u = previewURL {
+                NavigationStack {
+                    QuickLookPreview(url: u)
+                        .navigationTitle(attachment.name)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("完成") { showingPreview = false }
+                            }
+                        }
+                }
+            }
+        }
+    }
+
+    private func open() {
+        previewURL = AttachmentSaver.tempURL(for: attachment)
+        showingPreview = true
+    }
+}
+
+/// 聊天里的任务卡片
+struct InlineTaskCard: View {
+    let message: AgentMessage
+
+    var status: TaskStatus {
+        TaskStatus(rawValue: message.taskStatus ?? "pending") ?? .pending
+    }
+    var progress: Double { message.progress ?? 0 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("📋 任务").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                StatusPill(status: status)
+            }
+            Text(message.text)
+                .font(.body.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                ProgressBar(progress: progress,
+                            color: status == .done ? .green : Palette.accent)
+                Text("\(Int(progress * 100))%")
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: 320, alignment: .leading)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+// MARK: - 任务行（任务列表页）
+
+struct TaskRow: View {
+    let task: DevTask
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(task.title).font(.body.weight(.semibold))
+                Spacer()
+                StatusPill(status: task.status)
+            }
+            if !task.detail.isEmpty {
+                Text(task.detail).font(.subheadline).foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            HStack(spacing: 8) {
+                ProgressBar(progress: task.progress,
+                            color: task.status == .done ? .green : Palette.accent)
+                Text("\(Int(task.progress * 100))%")
+                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            }
+            HStack {
+                if !task.assignedAgent.isEmpty {
+                    Label(task.assignedAgent, systemImage: "person.crop.circle")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(task.updatedAt, style: .relative).font(.caption2).foregroundStyle(.tertiary)
+            }
+        }
+        .padding(14)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
