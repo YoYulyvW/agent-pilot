@@ -77,17 +77,21 @@ class RelayClient:
         except OSError:
             pass
 
+    def _token_key(self):
+        """token 按「中继地址 + 智能体名」区分，避免不同中继共用 token。"""
+        return (self.base_url or "") + "|" + (self.device_name or "default")
+
     def _load_token(self):
         """复用缓存的 relayToken，避免每次 CLI 进程都重新注册（触发限流）。"""
         data = self._read_config()
         tokens = data.get("tokens", {}) if isinstance(data, dict) else {}
-        key = self.device_name or "default"
+        key = self._token_key()
         return tokens.get(key, "") if isinstance(tokens, dict) else ""
 
     def _save_token(self, token):
         data = self._read_config()
         tokens = data.get("tokens", {}) if isinstance(data, dict) else {}
-        tokens[self.device_name or "default"] = token
+        tokens[self._token_key()] = token
         data["tokens"] = tokens
         self._write_config(data)
 
