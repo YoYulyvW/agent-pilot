@@ -1,6 +1,6 @@
 {
-  "version": "1.0.3",
+  "version": "1.0.4",
   "ipa_url": "https://raw.githubusercontent.com/YoYulyvW/agent-pilot/main/dist/AgentPilot.ipa",
-  "published_at": "2026-10-11T18:10:10Z",
-  "notes": "fix: SettingsView 关于 Section footer 语法"
+  "published_at": "2026-10-11T18:12:08Z",
+  "notes": "fix: 发布步骤 git add -f 强制加入被忽略的 IPA"
 }
