@@ -74,6 +74,8 @@ struct SettingsView: View {
                 Text("本应用为 TrollStore 免签名安装构建，未经过 App Store。")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Palette.bgBase)
         .navigationTitle("设置")
         .onAppear {
             relayURL = store.relayURL

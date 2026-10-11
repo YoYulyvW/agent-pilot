@@ -30,7 +30,7 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(msgs) { m in
-                            MessageBubble(message: m)
+                            MessageBubble(message: m, avatarEmoji: conversation?.avatarEmoji ?? "🤖")
                                 .id(m.id)
                                 .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
@@ -58,12 +58,21 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                VStack(spacing: 1) {
-                    Text(conversation?.title ?? "会话").font(.headline)
-                    if let conv = conversation {
-                        Text(conv.isOnline ? "在线" : "离线")
-                            .font(.caption2)
-                            .foregroundStyle(conv.isOnline ? Palette.success : Palette.textSecondary)
+                HStack(spacing: 8) {
+                    Text(conversation?.avatarEmoji ?? "🤖")
+                        .font(.system(size: 18))
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(conversation?.title ?? "会话")
+                            .font(.headline)
+                            .foregroundStyle(Palette.textPrimary)
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill((conversation?.isOnline ?? false) ? Palette.success : Palette.textTertiary)
+                                .frame(width: 6, height: 6)
+                            Text((conversation?.isOnline ?? false) ? "在线" : "离线")
+                                .font(.caption2)
+                                .foregroundStyle((conversation?.isOnline ?? false) ? Palette.success : Palette.textSecondary)
+                        }
                     }
                 }
             }
@@ -113,18 +122,27 @@ struct ChatView: View {
                 TextField("回复智能体…", text: $draft, axis: .vertical)
                     .lineLimit(1...5)
                     .focused($inputFocused)
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(Palette.bgElevated)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .padding(.horizontal, 16).padding(.vertical, 9)
+                    .foregroundStyle(Palette.textPrimary)
+                    .background(Palette.bgInput)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(Palette.bgElevated, lineWidth: 1)
+                    )
 
                 Button {
                     Task { await send() }
                 } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 30))
-                        .foregroundStyle(canSend ? Palette.accent : Palette.textTertiary)
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(canSend ? Palette.accent : Palette.bgElevated)
+                        .clipShape(Circle())
                 }
                 .disabled(!canSend)
+                .animation(.easeInOut(duration: 0.15), value: canSend)
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 8)

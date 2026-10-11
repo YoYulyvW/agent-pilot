@@ -159,6 +159,7 @@ struct ProgressBar: View {
 
 struct MessageBubble: View {
     let message: AgentMessage
+    var avatarEmoji: String = "🤖"
 
     var isIncoming: Bool { message.direction == .incoming }
 
@@ -175,37 +176,65 @@ struct MessageBubble: View {
     }
 
     var body: some View {
-        HStack {
-            if isIncoming { Spacer(minLength: 48) }
-            VStack(alignment: isIncoming ? .leading : .trailing, spacing: 6) {
-                switch message.kind {
-                case .task:
-                    InlineTaskCard(message: message)
-                case .tool:
-                    ToolCard(message: message)
-                default:
-                    if !message.text.isEmpty {
-                        Text(message.text)
-                            .font(.body)
-                            .padding(.horizontal, 14).padding(.vertical, 10)
-                            .foregroundStyle(isIncoming ? Palette.textPrimary : Color.white)
-                            .background(isIncoming ? Palette.bgElevated : Palette.accent)
-                            .clipShape(bubbleShape)
-                    }
-                }
+        HStack(alignment: .bottom, spacing: 8) {
+            if isIncoming {
+                agentAvatar
+                bubbleContent
+                Spacer(minLength: 44)
+            } else {
+                Spacer(minLength: 44)
+                bubbleContent
+                userAvatar
+            }
+        }
+    }
 
-                if !message.attachments.isEmpty {
-                    AttachmentGridView(attachments: message.attachments)
-                }
+    private var agentAvatar: some View {
+        Text(avatarEmoji)
+            .font(.system(size: 17))
+            .frame(width: 30, height: 30)
+            .background(Palette.bgElevated)
+            .clipShape(Circle())
+    }
 
-                HStack(spacing: 6) {
-                    if !message.senderName.isEmpty {
-                        Text(message.senderName).font(.caption2).foregroundStyle(Palette.textSecondary)
-                    }
-                    Text(message.timestamp, style: .time).font(.caption2).foregroundStyle(Palette.textTertiary)
+    private var userAvatar: some View {
+        ZStack {
+            Circle().fill(Palette.accent)
+                .frame(width: 30, height: 30)
+            Image(systemName: "person.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private var bubbleContent: some View {
+        VStack(alignment: isIncoming ? .leading : .trailing, spacing: 6) {
+            switch message.kind {
+            case .task:
+                InlineTaskCard(message: message)
+            case .tool:
+                ToolCard(message: message)
+            default:
+                if !message.text.isEmpty {
+                    Text(message.text)
+                        .font(.body)
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .foregroundStyle(isIncoming ? Palette.textPrimary : Color.white)
+                        .background(isIncoming ? Palette.bgElevated : Palette.accent)
+                        .clipShape(bubbleShape)
                 }
             }
-            if !isIncoming { Spacer(minLength: 48) }
+
+            if !message.attachments.isEmpty {
+                AttachmentGridView(attachments: message.attachments)
+            }
+
+            HStack(spacing: 6) {
+                if !message.senderName.isEmpty {
+                    Text(message.senderName).font(.caption2).foregroundStyle(Palette.textSecondary)
+                }
+                Text(message.timestamp, style: .time).font(.caption2).foregroundStyle(Palette.textTertiary)
+            }
         }
     }
 }
