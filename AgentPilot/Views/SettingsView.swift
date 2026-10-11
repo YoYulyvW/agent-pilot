@@ -65,9 +65,11 @@ struct SettingsView: View {
                 }
             }
 
-            Section("关于") {
+            Section {
                 LabeledContent("版本", value: AppConstants.version)
                 LabeledContent("中继协议", value: "relay v1 (poll)")
+            } header: {
+                Text("关于")
             } footer: {
                 Text("本应用为 TrollStore 免签名安装构建，未经过 App Store。")
             }
