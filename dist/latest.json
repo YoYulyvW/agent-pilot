@@ -1,6 +1,6 @@
 {
-  "version": "1.0.12",
+  "version": "1.0.13",
   "ipa_url": "https://raw.githubusercontent.com/YoYulyvW/agent-pilot/main/dist/AgentPilot.ipa",
-  "published_at": "2026-10-11T19:03:51Z",
+  "published_at": "2026-10-11T19:16:14Z",
   "notes": "feat: agent-relay SDK + edit 消息 + 工具进度卡片 + UI 优化"
 }
