@@ -1,68 +1,51 @@
 import SwiftUI
 
-struct SidebarView: View {
+struct ConversationListView: View {
     @EnvironmentObject private var store: Store
-    @Binding var selection: SidebarSelection?
 
-    private var activeTaskCount: Int {
-        store.tasks.filter { $0.status == .running || $0.status == .blocked }.count
-    }
     private var totalUnread: Int {
         store.conversations.reduce(0) { $0 + $1.unreadCount }
     }
 
     var body: some View {
-        List(selection: $selection) {
-            Section {
-                WorkspaceRow(title: "开发任务", systemImage: "checklist",
-                             tint: Palette.accent,
-                             badge: activeTaskCount > 0 ? "\(activeTaskCount)" : nil)
-                    .tag(SidebarSelection.tasks)
-                WorkspaceRow(title: "设置", systemImage: "gearshape",
-                             tint: Palette.textSecondary, badge: nil)
-                    .tag(SidebarSelection.settings)
-            } header: {
-                sectionHeader("工作台")
-            }
-
+        List {
             Section {
                 if store.conversations.isEmpty {
-                    HStack(spacing: 10) {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .foregroundStyle(Palette.textTertiary)
-                        Text("暂无智能体会话")
-                            .font(.subheadline).foregroundStyle(Palette.textTertiary)
-                    }
-                    .padding(.vertical, 6)
+                    EmptyStateView(
+                        title: "暂无智能体会话",
+                        systemImage: "bubble.left.and.bubble.right",
+                        message: "智能体发来消息后会自动出现在这里，\n也可到「设置 → 在线智能体」主动发起对话。"
+                    )
+                    .listRowBackground(Color.clear)
                 } else {
                     ForEach(store.conversations) { conv in
-                        ConversationRow(conv: conv,
-                                        isSelected: selection == .conversation(conv.id))
-                            .tag(SidebarSelection.conversation(conv.id))
-                            .listRowBackground(
-                                selection == .conversation(conv.id)
-                                ? Palette.accent.opacity(0.16) : Color.clear
-                            )
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    store.deleteConversation(conv.id)
-                                } label: {
-                                    Label("删除会话", systemImage: "trash")
-                                }
+                        NavigationLink(value: conv.id) {
+                            ConversationRow(conv: conv)
+                        }
+                        .listRowBackground(Palette.bgSurface)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                store.deleteConversation(conv.id)
+                            } label: {
+                                Label("删除会话", systemImage: "trash")
                             }
+                        }
                     }
                 }
             } header: {
                 HStack {
-                    sectionHeader("智能体")
+                    Text("智能体")
                     Spacer()
                     ConnectionBadge(state: store.connectionState)
                 }
+                .textCase(nil)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Palette.textTertiary)
             }
         }
-        .listStyle(.sidebar)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(Palette.bgSurface)
+        .background(Palette.bgBase)
         .navigationTitle("智能体控制台")
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -91,46 +74,9 @@ struct SidebarView: View {
                 }
             }
         }
-    }
-
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(Palette.textTertiary)
-            .textCase(nil)
-    }
-}
-
-// MARK: - 工作台入口行
-
-private struct WorkspaceRow: View {
-    let title: String
-    let systemImage: String
-    let tint: Color
-    let badge: String?
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(tint)
-                .frame(width: 28, height: 28)
-                .background(tint.opacity(0.14))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            Text(title)
-                .font(.body.weight(.medium))
-                .foregroundStyle(Palette.textPrimary)
-            Spacer()
-            if let badge {
-                Text(badge)
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 7).padding(.vertical, 2)
-                    .background(Palette.accent)
-                    .clipShape(Capsule())
-            }
+        .refreshable {
+            store.reconnect()
         }
-        .padding(.vertical, 2)
     }
 }
 
@@ -138,7 +84,6 @@ private struct WorkspaceRow: View {
 
 private struct ConversationRow: View {
     let conv: Conversation
-    let isSelected: Bool
 
     var body: some View {
         HStack(spacing: 10) {
@@ -157,7 +102,7 @@ private struct ConversationRow: View {
                 HStack(spacing: 6) {
                     Text(conv.lastMessage ?? "开始对话")
                         .font(.caption)
-                        .foregroundStyle(isSelected ? Palette.textPrimary : Palette.textSecondary)
+                        .foregroundStyle(Palette.textSecondary)
                         .lineLimit(1)
                     Spacer()
                     if conv.unreadCount > 0 {
