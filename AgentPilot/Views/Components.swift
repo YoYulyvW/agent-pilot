@@ -2,13 +2,6 @@ import SwiftUI
 import QuickLook
 import Photos
 
-// MARK: - 主题色
-
-enum Palette {
-    static let accent = Color(red: 0.35, green: 0.55, blue: 1.0)      // 蓝
-    static let accentDark = Color(red: 0.22, green: 0.38, blue: 0.85)
-}
-
 // MARK: - 空状态（iOS 16.4 无 ContentUnavailableView）
 
 struct EmptyStateView: View {
@@ -20,10 +13,10 @@ struct EmptyStateView: View {
         VStack(spacing: 10) {
             Image(systemName: systemImage)
                 .font(.system(size: 40))
-                .foregroundStyle(.tertiary)
-            Text(title).font(.headline).foregroundStyle(.secondary)
+                .foregroundStyle(Palette.textTertiary)
+            Text(title).font(.headline).foregroundStyle(Palette.textSecondary)
             if let message {
-                Text(message).font(.subheadline).foregroundStyle(.tertiary)
+                Text(message).font(.subheadline).foregroundStyle(Palette.textTertiary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -84,17 +77,17 @@ struct ConnectionBadge: View {
 
     var color: Color {
         switch state {
-        case .connected: return .green
-        case .connecting: return .orange
-        case .error: return .red
-        case .idle: return .gray
+        case .connected: return Palette.success
+        case .connecting: return Palette.warning
+        case .error: return Palette.danger
+        case .idle: return Palette.textTertiary
         }
     }
 
     var body: some View {
         HStack(spacing: 6) {
             Circle().fill(color).frame(width: 8, height: 8)
-            Text(state.display).font(.caption).foregroundStyle(.secondary)
+            Text(state.display).font(.caption).foregroundStyle(Palette.textSecondary)
         }
     }
 }
@@ -110,12 +103,12 @@ struct AvatarView: View {
             Text(emoji)
                 .font(.system(size: 20))
                 .frame(width: 42, height: 42)
-                .background(Color(.secondarySystemBackground))
+                .background(Palette.bgElevated)
                 .clipShape(Circle())
             Circle()
-                .fill(online ? Color.green : Color.gray)
+                .fill(online ? Palette.success : Palette.textTertiary)
                 .frame(width: 11, height: 11)
-                .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
+                .overlay(Circle().stroke(Palette.bgBase, lineWidth: 2))
         }
     }
 }
@@ -127,11 +120,11 @@ struct StatusPill: View {
 
     var color: Color {
         switch status {
-        case .pending: return .gray
-        case .running: return .blue
-        case .blocked: return .orange
-        case .done: return .green
-        case .failed: return .red
+        case .pending: return Palette.textTertiary
+        case .running: return Palette.info
+        case .blocked: return Palette.warning
+        case .done: return Palette.success
+        case .failed: return Palette.danger
         }
     }
 
@@ -154,7 +147,7 @@ struct ProgressBar: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(Color(.systemGray5))
+                Capsule().fill(Palette.bgPanel)
                 Capsule().fill(color).frame(width: geo.size.width * progress)
             }
         }
@@ -195,8 +188,8 @@ struct MessageBubble: View {
                         Text(message.text)
                             .font(.body)
                             .padding(.horizontal, 14).padding(.vertical, 10)
-                            .foregroundStyle(isIncoming ? Color.primary : Color.white)
-                            .background(isIncoming ? Color(.secondarySystemBackground) : Palette.accent)
+                            .foregroundStyle(isIncoming ? Palette.textPrimary : Color.white)
+                            .background(isIncoming ? Palette.bgElevated : Palette.accent)
                             .clipShape(bubbleShape)
                     }
                 }
@@ -207,9 +200,9 @@ struct MessageBubble: View {
 
                 HStack(spacing: 6) {
                     if !message.senderName.isEmpty {
-                        Text(message.senderName).font(.caption2).foregroundStyle(.secondary)
+                        Text(message.senderName).font(.caption2).foregroundStyle(Palette.textSecondary)
                     }
-                    Text(message.timestamp, style: .time).font(.caption2).foregroundStyle(.tertiary)
+                    Text(message.timestamp, style: .time).font(.caption2).foregroundStyle(Palette.textTertiary)
                 }
             }
             if !isIncoming { Spacer(minLength: 48) }
@@ -227,8 +220,8 @@ struct ToolCard: View {
 
     private var tint: Color {
         switch state {
-        case "done": return .green
-        case "failed": return .red
+        case "done": return Palette.success
+        case "failed": return Palette.danger
         default: return Palette.accent
         }
     }
@@ -238,11 +231,11 @@ struct ToolCard: View {
         switch state {
         case "done":
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
+                .foregroundStyle(Palette.success)
                 .font(.system(size: 18))
         case "failed":
             Image(systemName: "xmark.circle.fill")
-                .foregroundStyle(.red)
+                .foregroundStyle(Palette.danger)
                 .font(.system(size: 18))
         default:
             ProgressView()
@@ -262,7 +255,7 @@ struct ToolCard: View {
                 if !message.text.isEmpty {
                     Text(message.text)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Palette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -270,7 +263,7 @@ struct ToolCard: View {
         }
         .padding(12)
         .frame(maxWidth: 320, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
+        .background(Palette.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -345,7 +338,7 @@ struct ImageAttachmentCell: View {
                 case .failure:
                     placeholder("图片加载失败")
                 case .empty:
-                    ZStack { Color(.secondarySystemBackground); ProgressView() }
+                    ZStack { Palette.bgElevated; ProgressView() }
                 @unknown default:
                     EmptyView()
                 }
@@ -357,8 +350,8 @@ struct ImageAttachmentCell: View {
 
     private func placeholder(_ s: String) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground))
-            Text(s).font(.caption).foregroundStyle(.secondary)
+            RoundedRectangle(cornerRadius: 12).fill(Palette.bgElevated)
+            Text(s).font(.caption).foregroundStyle(Palette.textSecondary)
         }
         .frame(width: 200, height: 120)
     }
@@ -427,14 +420,14 @@ struct FileAttachmentCell: View {
                 Text(attachment.name)
                     .font(.subheadline.weight(.medium)).lineLimit(1)
                 Text(AttachmentHelper.readableSize(attachment.sizeBytes))
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.caption2).foregroundStyle(Palette.textSecondary)
             }
             Spacer()
-            Image(systemName: "eye").foregroundStyle(.secondary)
+            Image(systemName: "eye").foregroundStyle(Palette.textSecondary)
         }
         .padding(10)
         .frame(maxWidth: 260)
-        .background(Color(.secondarySystemBackground))
+        .background(Palette.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onTapGesture { open() }
         .contextMenu {
@@ -478,7 +471,7 @@ struct InlineTaskCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("📋 任务").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Text("📋 任务").font(.caption.weight(.semibold)).foregroundStyle(Palette.textSecondary)
                 Spacer()
                 StatusPill(status: status)
             }
@@ -487,15 +480,15 @@ struct InlineTaskCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 ProgressBar(progress: progress,
-                            color: status == .done ? .green : Palette.accent)
+                            color: status == .done ? Palette.success : Palette.accent)
                 Text("\(Int(progress * 100))%")
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(.caption2).foregroundStyle(Palette.textSecondary)
                     .monospacedDigit()
             }
         }
         .padding(12)
         .frame(maxWidth: 320, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
+        .background(Palette.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
@@ -513,26 +506,26 @@ struct TaskRow: View {
                 StatusPill(status: task.status)
             }
             if !task.detail.isEmpty {
-                Text(task.detail).font(.subheadline).foregroundStyle(.secondary)
+                Text(task.detail).font(.subheadline).foregroundStyle(Palette.textSecondary)
                     .lineLimit(2)
             }
             HStack(spacing: 8) {
                 ProgressBar(progress: task.progress,
-                            color: task.status == .done ? .green : Palette.accent)
+                            color: task.status == .done ? Palette.success : Palette.accent)
                 Text("\(Int(task.progress * 100))%")
-                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    .font(.caption).foregroundStyle(Palette.textSecondary).monospacedDigit()
             }
             HStack {
                 if !task.assignedAgent.isEmpty {
                     Label(task.assignedAgent, systemImage: "person.crop.circle")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(Palette.textSecondary)
                 }
                 Spacer()
-                Text(task.updatedAt, style: .relative).font(.caption2).foregroundStyle(.tertiary)
+                Text(task.updatedAt, style: .relative).font(.caption2).foregroundStyle(Palette.textTertiary)
             }
         }
         .padding(14)
-        .background(Color(.secondarySystemBackground))
+        .background(Palette.bgElevated)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

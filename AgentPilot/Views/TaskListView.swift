@@ -21,12 +21,12 @@ struct TaskListView: View {
             Section {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text("总体进度").font(.subheadline).foregroundStyle(.secondary)
+                        Text("总体进度").font(.subheadline).foregroundStyle(Palette.textSecondary)
                         Spacer()
                         Text("\(store.tasks.filter { $0.status == .done }.count)/\(store.tasks.count) 已完成")
                             .font(.subheadline.weight(.semibold)).monospacedDigit()
                     }
-                    ProgressBar(progress: overallProgress, color: .green)
+                    ProgressBar(progress: overallProgress, color: Palette.success)
                 }
                 .padding(.vertical, 6)
             }

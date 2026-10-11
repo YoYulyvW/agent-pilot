@@ -32,6 +32,8 @@ struct RootView: View {
                 )
             }
         }
+        .tint(Palette.accent)
+        .background(Palette.bgBase)
         .onChange(of: store.selectedConversationId) { newId in
             if let newId { selection = .conversation(newId) }
         }

@@ -13,7 +13,7 @@ struct SettingsView: View {
             Section {
                 ConnectionBadge(state: store.connectionState)
                 if let err = store.transport.lastError {
-                    Text(err).font(.caption).foregroundStyle(.red)
+                    Text(err).font(.caption).foregroundStyle(Palette.danger)
                 }
             } header: {
                 Text("连接状态")
@@ -49,14 +49,14 @@ struct SettingsView: View {
 
             Section("在线智能体") {
                 if store.devices.isEmpty {
-                    Text("暂未发现其它设备").font(.subheadline).foregroundStyle(.secondary)
+                    Text("暂未发现其它设备").font(.subheadline).foregroundStyle(Palette.textSecondary)
                 } else {
                     ForEach(store.devices) { d in
                         HStack {
                             Text(d.deviceName)
                             Spacer()
-                            Text(d.platform).font(.caption).foregroundStyle(.secondary)
-                            Circle().fill(d.online ? Color.green : Color.gray).frame(width: 8, height: 8)
+                            Text(d.platform).font(.caption).foregroundStyle(Palette.textSecondary)
+                            Circle().fill(d.online ? Palette.success : Palette.textTertiary).frame(width: 8, height: 8)
                         }
                     }
                 }

@@ -29,7 +29,7 @@ struct SidebarView: View {
             Section {
                 if store.conversations.isEmpty {
                     Text("暂无智能体会话")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(Palette.textSecondary)
                 } else {
                     ForEach(store.conversations) { conv in
                         ConversationRow(conv: conv)
@@ -86,11 +86,11 @@ private struct ConversationRow: View {
                             .clipShape(Capsule())
                     } else {
                         Text(conv.updatedAt, style: .time)
-                            .font(.caption2).foregroundStyle(.tertiary)
+                            .font(.caption2).foregroundStyle(Palette.textTertiary)
                     }
                 }
                 Text(conv.lastMessage ?? "开始对话")
-                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                    .font(.subheadline).foregroundStyle(Palette.textSecondary).lineLimit(1)
             }
         }
         .padding(.vertical, 3)

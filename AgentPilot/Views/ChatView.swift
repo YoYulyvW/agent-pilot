@@ -63,7 +63,7 @@ struct ChatView: View {
                     if let conv = conversation {
                         Text(conv.isOnline ? "在线" : "离线")
                             .font(.caption2)
-                            .foregroundStyle(conv.isOnline ? Color.green : Color.secondary)
+                            .foregroundStyle(conv.isOnline ? Palette.success : Palette.textSecondary)
                     }
                 }
             }
@@ -92,7 +92,7 @@ struct ChatView: View {
                         .font(.system(size: 20))
                         .foregroundStyle(Palette.accent)
                         .frame(width: 38, height: 38)
-                        .background(Color(.secondarySystemBackground))
+                        .background(Palette.bgElevated)
                         .clipShape(Circle())
                 }
                 .onChange(of: photoPickerItems) { items in
@@ -106,7 +106,7 @@ struct ChatView: View {
                         .font(.system(size: 20))
                         .foregroundStyle(Palette.accent)
                         .frame(width: 38, height: 38)
-                        .background(Color(.secondarySystemBackground))
+                        .background(Palette.bgElevated)
                         .clipShape(Circle())
                 }
 
@@ -114,7 +114,7 @@ struct ChatView: View {
                     .lineLimit(1...5)
                     .focused($inputFocused)
                     .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(Color(.secondarySystemBackground))
+                    .background(Palette.bgElevated)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                 Button {
@@ -122,7 +122,7 @@ struct ChatView: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundStyle(canSend ? Palette.accent : Color(.systemGray3))
+                        .foregroundStyle(canSend ? Palette.accent : Palette.textTertiary)
                 }
                 .disabled(!canSend)
             }
@@ -156,11 +156,11 @@ struct ChatView: View {
                             pickedFiles.remove(at: i)
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Palette.textSecondary)
                         }
                     }
                     .padding(.horizontal, 10).padding(.vertical, 6)
-                    .background(Color(.secondarySystemBackground))
+                    .background(Palette.bgElevated)
                     .clipShape(Capsule())
                 }
             }
