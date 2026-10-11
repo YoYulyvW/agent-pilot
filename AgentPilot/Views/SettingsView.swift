@@ -22,7 +22,7 @@ struct SettingsView: View {
             }
 
             Section {
-                TextField("https://relay.example.com", text: $relayURL)
+                TextField("http://192.168.1.100:8861", text: $relayURL)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

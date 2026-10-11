@@ -15,21 +15,21 @@
 cd agent-relay
 
 # 1. 列出中继上的设备（找到手机的 deviceId）
-python -m agent_relay --relay http://127.0.0.1:8860 --name WorkBuddy devices
+python -m agent_relay --relay http://127.0.0.1:8861 --name WorkBuddy devices
 
 # 2. 发文本消息（phone = 自动选 iOS 设备）
-python -m agent_relay --relay http://127.0.0.1:8860 --name WorkBuddy send phone "构建完成 ✅"
+python -m agent_relay --relay http://127.0.0.1:8861 --name WorkBuddy send phone "构建完成 ✅"
 
 # 3. 工具调用进度 —— 关键：同一个 message_id 就是「edit 原消息」
-python -m agent_relay --relay http://127.0.0.1:8860 --name Codex tool m1 read_file running "正在读取 Config.swift"
-python -m agent_relay --relay http://127.0.0.1:8860 --name Codex tool m1 read_file done "已读取（120 行）"
+python -m agent_relay --relay http://127.0.0.1:8861 --name Codex tool m1 read_file running "正在读取 Config.swift"
+python -m agent_relay --relay http://127.0.0.1:8861 --name Codex tool m1 read_file done "已读取（120 行）"
 
 # 4. 任务状态
-python -m agent_relay --relay http://127.0.0.1:8860 --name WorkBuddy task t1 "部署" --status running --progress 0.5
-python -m agent_relay --relay http://127.0.0.1:8860 --name WorkBuddy task t1 "部署" --status done --progress 1.0
+python -m agent_relay --relay http://127.0.0.1:8861 --name WorkBuddy task t1 "部署" --status running --progress 0.5
+python -m agent_relay --relay http://127.0.0.1:8861 --name WorkBuddy task t1 "部署" --status done --progress 1.0
 
 # 5. 等待手机回复（阻塞，直到收到回复或超时）
-python -m agent_relay --relay http://127.0.0.1:8860 --name WorkBuddy listen --timeout 120
+python -m agent_relay --relay http://127.0.0.1:8861 --name WorkBuddy listen --timeout 120
 ```
 
 ## 二、MCP 方式（Codex / Claude Code / Cursor 推荐）
@@ -47,7 +47,7 @@ pip install mcp
       "command": "python",
       "args": ["-m", "agent_relay.mcp_server"],
       "env": {
-        "AGENT_RELAY_URL": "http://127.0.0.1:8860",
+        "AGENT_RELAY_URL": "http://127.0.0.1:8861",
         "AGENT_RELAY_NAME": "Codex"
       }
     }
