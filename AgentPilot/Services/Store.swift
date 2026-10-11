@@ -13,6 +13,11 @@ final class Store: ObservableObject {
     @Published var tasks: [DevTask] = []
     @Published var devices: [AgentDevice] = []
 
+    /// 在线智能体（platform == "agent" 的设备）
+    var onlineAgents: [AgentDevice] {
+        devices.filter { $0.platform == "agent" }
+    }
+
     // MARK: - 设置
 
     @Published var relayURL: String {

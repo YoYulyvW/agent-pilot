@@ -9,12 +9,49 @@ struct ConversationListView: View {
 
     var body: some View {
         List {
+            // 在线智能体（可主动选择对话）
+            Section {
+                if store.onlineAgents.isEmpty {
+                    HStack(spacing: 10) {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .foregroundStyle(Palette.textTertiary)
+                        Text(store.connectionState == .connected ? "暂无在线智能体" : "未连接中继，请先到「设置」填写中继地址")
+                            .font(.subheadline).foregroundStyle(Palette.textSecondary)
+                    }
+                    .padding(.vertical, 6)
+                } else {
+                    ForEach(store.onlineAgents) { agent in
+                        Button {
+                            store.startConversation(deviceId: agent.deviceId, name: agent.deviceName)
+                        } label: {
+                            AgentRow(agent: agent)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowBackground(Palette.bgSurface)
+                    }
+                }
+            } header: {
+                HStack {
+                    Text("在线智能体")
+                    Spacer()
+                    if !store.onlineAgents.isEmpty {
+                        Text("\(store.onlineAgents.count) 个")
+                    }
+                }
+                .textCase(nil)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Palette.textTertiary)
+            } footer: {
+                Text("智能体（WorkBuddy / Codex 等）接入中继后出现在这里，点选即可对话。")
+            }
+
+            // 会话历史
             Section {
                 if store.conversations.isEmpty {
                     EmptyStateView(
-                        title: "暂无智能体会话",
+                        title: "还没有会话",
                         systemImage: "bubble.left.and.bubble.right",
-                        message: "智能体发来消息后会自动出现在这里，\n也可到「设置 → 在线智能体」主动发起对话。"
+                        message: "从上方选择一个在线智能体开始对话，\n或等智能体主动给你发消息。"
                     )
                     .listRowBackground(Color.clear)
                 } else {
@@ -34,7 +71,7 @@ struct ConversationListView: View {
                 }
             } header: {
                 HStack {
-                    Text("智能体")
+                    Text("会话")
                     Spacer()
                     ConnectionBadge(state: store.connectionState)
                 }
@@ -74,9 +111,41 @@ struct ConversationListView: View {
                 }
             }
         }
+        .onAppear {
+            Task { await store.refreshDevices() }
+        }
         .refreshable {
             store.reconnect()
+            await store.refreshDevices()
         }
+    }
+}
+
+// MARK: - 在线智能体行
+
+private struct AgentRow: View {
+    let agent: AgentDevice
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("🤖")
+                .font(.system(size: 18))
+                .frame(width: 38, height: 38)
+                .background(Palette.bgElevated)
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(agent.deviceName)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(agent.online ? "在线 · 点击对话" : "离线")
+                    .font(.caption2)
+                    .foregroundStyle(agent.online ? Palette.success : Palette.textTertiary)
+            }
+            Spacer()
+            Image(systemName: "bubble.left.and.bubble.right")
+                .foregroundStyle(Palette.accent)
+        }
+        .padding(.vertical, 4)
     }
 }
 
