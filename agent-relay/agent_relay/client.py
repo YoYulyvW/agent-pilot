@@ -46,29 +46,50 @@ class RelayClient:
         self.bark_key = bark_key
         self.config_path = config_path or os.path.expanduser("~/.agentrelay.json")
         self.device_id = device_id or self._load_device_id()
-        self.token = ""
+        self.token = self._load_token()
 
     # ---------- 配置持久化 ----------
     def _load_device_id(self):
         """按智能体名称分配独立 deviceId，保证不同智能体在手机端是不同会话。"""
-        data = {}
-        try:
-            with open(self.config_path, encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, ValueError):
-            data = {}
+        data = self._read_config()
         devices = data.get("devices", {}) if isinstance(data, dict) else {}
         key = self.device_name or "default"
         if isinstance(devices, dict) and devices.get(key):
             return devices[key]
         did = "agent-" + uuid.uuid4().hex[:16]
         devices[key] = did
+        data["devices"] = devices
+        self._write_config(data)
+        return did
+
+    def _read_config(self):
+        try:
+            with open(self.config_path, encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except (OSError, ValueError):
+            return {}
+
+    def _write_config(self, data):
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
-                json.dump({"devices": devices}, f, ensure_ascii=False, indent=2)
+                json.dump(data, f, ensure_ascii=False, indent=2)
         except OSError:
             pass
-        return did
+
+    def _load_token(self):
+        """复用缓存的 relayToken，避免每次 CLI 进程都重新注册（触发限流）。"""
+        data = self._read_config()
+        tokens = data.get("tokens", {}) if isinstance(data, dict) else {}
+        key = self.device_name or "default"
+        return tokens.get(key, "") if isinstance(tokens, dict) else ""
+
+    def _save_token(self, token):
+        data = self._read_config()
+        tokens = data.get("tokens", {}) if isinstance(data, dict) else {}
+        tokens[self.device_name or "default"] = token
+        data["tokens"] = tokens
+        self._write_config(data)
 
     # ---------- HTTP 基础 ----------
     def _api(self, path, method="GET", body=None, auth=True, timeout=60):
@@ -95,7 +116,10 @@ class RelayClient:
             raise RelayError("%s %s: %s" % (method, path, e))
 
     # ---------- 协议方法 ----------
-    def register(self):
+    def register(self, force=False):
+        """注册并获取 relayToken；默认复用缓存 token，避免频繁注册触发限流。"""
+        if not force and self.token:
+            return self.token
         resp = self._api("/relay/register", "POST", {
             "deviceId": self.device_id,
             "deviceName": self.device_name,
@@ -106,6 +130,7 @@ class RelayClient:
         if not resp.get("ok") or not resp.get("relayToken"):
             raise RelayError("注册失败: %s" % resp)
         self.token = resp["relayToken"]
+        self._save_token(self.token)
         return self.token
 
     def send(self, to, payload, type_="agent", ttl_hours=DEFAULT_TTL_HOURS):

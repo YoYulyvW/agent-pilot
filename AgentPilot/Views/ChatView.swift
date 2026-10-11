@@ -77,8 +77,14 @@ struct ChatView: View {
                 }
             }
         }
-        .onAppear { store.markRead(conversationId) }
-        .onChange(of: conversationId) { _ in store.markRead(conversationId) }
+        .onAppear {
+            store.selectedConversationId = conversationId
+            store.markRead(conversationId)
+        }
+        .onChange(of: conversationId) { newId in
+            store.selectedConversationId = newId
+            store.markRead(newId)
+        }
         .fileImporter(isPresented: $showFileImporter,
                       allowedContentTypes: [.item],
                       allowsMultipleSelection: true) { result in
@@ -230,7 +236,7 @@ struct ChatView: View {
         pickedImages = []
         pickedFiles = []
         sending = true
-        await store.sendMessage(text: text, images: images, files: files)
+        await store.sendMessage(to: conversationId, text: text, images: images, files: files)
         sending = false
     }
 }

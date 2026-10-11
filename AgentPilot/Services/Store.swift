@@ -279,8 +279,7 @@ final class Store: ObservableObject {
 
     /// 发送文本 + 图片 + 文件
     @discardableResult
-    func sendMessage(text: String, images: [UIImage], files: [OutgoingFile]) async -> Bool {
-        guard let convId = selectedConversationId else { return false }
+    func sendMessage(to convId: String, text: String, images: [UIImage], files: [OutgoingFile]) async -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty || !images.isEmpty || !files.isEmpty else { return false }
 

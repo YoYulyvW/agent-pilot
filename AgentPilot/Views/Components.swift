@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import QuickLook
 import Photos
 
@@ -214,16 +215,23 @@ struct MessageBubble: View {
                 InlineTaskCard(message: message)
             case .tool:
                 ToolCard(message: message)
-            default:
-                if !message.text.isEmpty {
-                    Text(message.text)
-                        .font(.body)
-                        .padding(.horizontal, 14).padding(.vertical, 10)
-                        .foregroundStyle(isIncoming ? Palette.textPrimary : Color.white)
-                        .background(isIncoming ? Palette.bgElevated : Palette.accent)
-                        .clipShape(bubbleShape)
+                default:
+                    if !message.text.isEmpty {
+                        Text(message.text)
+                            .font(.body)
+                            .padding(.horizontal, 14).padding(.vertical, 10)
+                            .foregroundStyle(isIncoming ? Palette.textPrimary : Color.white)
+                            .background(isIncoming ? Palette.bgElevated : Palette.accent)
+                            .clipShape(bubbleShape)
+                            .contextMenu {
+                                Button {
+                                    UIPasteboard.general.string = message.text
+                                } label: {
+                                    Label("复制", systemImage: "doc.on.doc")
+                                }
+                            }
+                    }
                 }
-            }
 
             if !message.attachments.isEmpty {
                 AttachmentGridView(attachments: message.attachments)
